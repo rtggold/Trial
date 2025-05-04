@@ -47,123 +47,111 @@ OUTPUT:
 #include <iostream>
 #include <fstream>
 #include <cstring>
-
 using namespace std;
+
 struct Student {
-    int rollNumber;
+    char roll[20];
     char name[50];
-    char division;
+    char division[5];
     char address[100];
 };
 
 void addStudent() {
-    ofstream outFile("students.dat", ios::binary | ios::app);
-    Student student;
+    Student s;
+    ofstream out("students.txt", ios::app);
+
     cout << "Enter Roll Number: ";
-    cin >> student.rollNumber;
-    cin.ignore(); 
+    cin.getline(s.roll, 20);
     cout << "Enter Name: ";
-    cin.getline(student.name, 50);
+    cin.getline(s.name, 50);
     cout << "Enter Division: ";
-    cin >> student.division;
-    cin.ignore(); 
+    cin.getline(s.division, 5);
     cout << "Enter Address: ";
-    cin.getline(student.address, 100);
+    cin.getline(s.address, 100);
 
-    outFile.write(reinterpret_cast<char*>(&student), sizeof(Student));
-
-    outFile.close();
+    out << s.roll << "," << s.name << "," << s.division << "," << s.address << "\n";
+    out.close();
 }
 
-void deleteStudent(int rollNumber) {
-    ifstream inFile("students.dat", ios::binary);
-    ofstream outFile("temp.dat", ios::binary);
-
-    Student student;
+void deleteStudent(const char* targetRoll) {
+    ifstream in("students.txt");
+    ofstream out("temp.txt");
+    char line[200];
     bool found = false;
 
-    while (inFile.read(reinterpret_cast<char*>(&student), sizeof(Student))) {
-        if (student.rollNumber != rollNumber) {
-            outFile.write(reinterpret_cast<char*>(&student), sizeof(Student));
-        } 
-        else {
+    while (in.getline(line, 200)) {
+        char roll[20];
+        sscanf(line, "%[^,]", roll);  // extract roll number before the first comma
+
+        if (strcmp(roll, targetRoll) != 0) {
+            out << line << "\n";
+        } else {
             found = true;
         }
     }
 
-    inFile.close();
-    outFile.close();
+    in.close();
+    out.close();
+    remove("students.txt");
+    rename("temp.txt", "students.txt");
 
-    if (found) {
-        remove("students.dat");
-        rename("temp.dat", "students.dat");
-        cout << "Student record deleted successfully." << endl;
-    } 
-    else {
-        remove("temp.dat");
-        cout << "Student record not found." << endl;
-    }
+    cout << (found ? "Deleted successfully.\n" : "Student not found.\n");
 }
 
-void displayStudent(int rollNumber) {
-    ifstream inFile("students.dat", ios::binary);
-
-    Student student;
+void displayStudent(const char* targetRoll) {
+    ifstream in("students.txt");
+    char line[200];
     bool found = false;
 
-    while (inFile.read(reinterpret_cast<char*>(&student), sizeof(Student))) {
-        if (student.rollNumber == rollNumber) {
-            cout << "Roll Number: " << student.rollNumber << endl;
-            cout << "Name: " << student.name << endl;
-            cout << "Division: " << student.division << endl;
-            cout << "Address: " << student.address << endl;
+    while (in.getline(line, 200)) {
+        char roll[20], name[50], div[5], addr[100];
+        sscanf(line, "%[^,],%[^,],%[^,],%[^\n]", roll, name, div, addr);
+
+        if (strcmp(roll, targetRoll) == 0) {
+            cout << "Roll: " << roll << "\nName: " << name
+                 << "\nDivision: " << div << "\nAddress: " << addr << "\n";
             found = true;
             break;
         }
     }
 
-    inFile.close();
-    if (!found) {
-        cout << "Student record not found." << endl;
-    }
+    in.close();
+    if (!found)
+        cout << "Student not found.\n";
 }
 
 int main() {
     int choice;
-    int rollNumber;
+    char roll[20];
 
     do {
-        cout << "----- Student Information System -----" << endl;
-        cout << "1. Add Student" << endl;
-        cout << "2. Delete Student" << endl;
-        cout << "3. Display Student" << endl;
-        cout << "4. Quit" << endl;
+        cout << "\n--- Student Information System ---\n";
+        cout << "1. Add Student\n2. Delete Student\n3. Display Student\n4. Quit\n";
         cout << "Enter your choice: ";
         cin >> choice;
+        cin.ignore(); // Clear newline after number input
 
         switch (choice) {
             case 1:
                 addStudent();
                 break;
             case 2:
-                cout << "Enter Roll Number of student to delete: ";
-                cin >> rollNumber;
-                deleteStudent(rollNumber);
+                cout << "Enter Roll Number to delete: ";
+                cin.getline(roll, 20);
+                deleteStudent(roll);
                 break;
             case 3:
-                cout << "Enter Roll Number of student to display: ";
-                cin >> rollNumber;
-                displayStudent(rollNumber);
+                cout << "Enter Roll Number to display: ";
+                cin.getline(roll, 20);
+                displayStudent(roll);
                 break;
             case 4:
                 break;
             default:
-                cout << "Invalid choice. Please try again." << endl;
-                break;
+                cout << "Invalid choice.\n";
         }
-
-        cout << endl;
     } while (choice != 4);
-    return 0; 
+
+    return 0;
 }
 
